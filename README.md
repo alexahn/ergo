@@ -5,7 +5,7 @@ A simple attempt at simulating Erlang processes in Go. Mostly an exercise to get
 The `Spawn` function accepts as input a function (`f`) that accepts as input (`pid`) `chan interface{}` and (`wg`)  `*sync.WaitGroup`.
 
 Messages are received via `pid`, which can be used directly, but it is recommended to use the `Send` and `Receive` functions to better manage process state.
-```
+```go
 pid, wg := ergo.Spawn(func (pid chan interface{}, wg *sync.WaitGroup) int {
   fmt.Println(<-pid)
   return 0
@@ -14,7 +14,7 @@ pid <- "hello"
 ```
 
 Wait conditions can be specified using `wg` in the body of function `f`.
-```
+```go
 pid, wg := ergo.Spawn(func (pid chan interface{}, wg *sync.WaitGroup) int {
   wg.Add(1)
   go func() {
@@ -27,7 +27,7 @@ wg.Wait()
 ```
 
 Closures can be used to encapsulate more variables to build richer functions.
-```
+```go
 func counter(n int) func (chan interface{}, *sync.WaitGroup) int
   return func(pid chan interface{}, wg *sync.WaitGroup) int {
     fmt.Println("counter value", n)
@@ -44,7 +44,7 @@ func main() {
 
 ## SpawnLink
 The `SpawnLink` function is similar to `Spawn` except that it accepts an argument (`partner`) `chan interface{}`. If either the spawned process or the bound `partner` is killed, then both processes will be killed.
-```
+```go
 func worker(pid chan interface{}, wg *sync.WaitGroup) int {
   time.Sleep(5000 * time.Millisecond)
   return 0
@@ -60,7 +60,7 @@ func main () {
 
 ## Receive
 The `Receive` function is a wrapper around receiving messages using the `select` keyword for a `pid` channel. `Receive` accepts as arguments a `pid` and a function that accepts as input (`alive`) `bool` and (`message`) `interface{}`. The `alive` variable should be used to control recursive branching logic to terminate the process (ie `return`).
-```
+```go
 pid, wg := ergo.Spawn(func (pid chan interface{}, wg *sync.WaitGroup) int {
   ergo.Receive(pid, func(alive bool, message interface{}) int {
     if (alive) {
@@ -76,7 +76,7 @@ pid <- "hello"
 
 ## Send
 The `Send` function is a wrapper around sending messages using the `pid` channel. The `Send` function will make sure killed processes do not received messages.
-```
+```go
 pid, wg := ergo.Spawn(func (pid chan interface{}, wg *sync.WaitGroup) int {
   ergo.Receive(pid, func(alive bool, message interface{}) int {
     if (alive) {
@@ -92,7 +92,7 @@ ergo.Send(pid, "hello")
 
 ## Kill
 The `Kill` function is a wrapper around closing a `pid` channel, that also takes care of killing linked processes. In Go, goroutines cannot be killed from the outside, so the best we can do is organize logic such that the goroutines terminate, ie `return`. If you have a blocking infinite loop inside a process, then `Kill` will not help you.
-```
+```go
 func worker(pid chan interface{}, wg *sync.WaitGroup) int {
   time.Sleep(5000 * time.Millisecond)
   return 0
@@ -108,7 +108,7 @@ func main () {
 
 ## Full Example
 
-```
+```go
 func ping(count int, pong_pid chan interface{}) func(chan interface{}, *sync.WaitGroup) int {
 	if count > 0 {
 		return ping_n(count, pong_pid)
