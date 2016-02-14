@@ -1,5 +1,5 @@
 # ergo
-A simple attempt at simulating Erlang processes in Go. Mostly an exercise to get familiar with Go, but might prove to be useful for building large distributed applications.
+A simple attempt at simulating Erlang processes in Go. Mostly an exercise to get familiar with Go, but might someday prove to be useful for building large distributed applications.
 
 ## Spawn
 The `Spawn` function accepts as input a function (`f`) that accepts as input (`pid`) `chan interface{}` and (`wg`)  `*sync.WaitGroup`. The `Spawn` function returns a `pid` of type `chan interface{}` and `wg` of type `*sync.WaitGroup`.
@@ -167,7 +167,7 @@ type Message struct {
 }
 
 func main () {
-	p1, wg1 := ergo.Spawn(pong)
+  p1, wg1 := ergo.Spawn(pong)
 	p2, wg2 := ergo.SpawnLink(p1, ping(3, p1))
 	fmt.Println(p1, wg1, p2, wg2)
 	fmt.Println(ergo.ListProcesses())
