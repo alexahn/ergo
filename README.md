@@ -110,70 +110,70 @@ func main () {
 
 ```go
 func ping(count int, pong_pid chan interface{}) func(chan interface{}, *sync.WaitGroup) int {
-	if count > 0 {
-		return ping_n(count, pong_pid)
-	} else {
-		return ping_0(count, pong_pid)
-	}
+  if count > 0 {
+    return ping_n(count, pong_pid)
+  } else {
+    return ping_0(count, pong_pid)
+  }
 }
 
 func ping_0(count int, pong_pid chan interface{}) func(chan interface{}, *sync.WaitGroup) int {
-	return func(pid chan interface{}, wg *sync.WaitGroup) int {
-		ergo.Send(pong_pid, Message{pid, "finished"})
-		fmt.Println("Ping finished")
-		return 0
-	}
+  return func(pid chan interface{}, wg *sync.WaitGroup) int {
+    ergo.Send(pong_pid, Message{pid, "finished"})
+    fmt.Println("Ping finished")
+    return 0
+  }
 }
 
 func ping_n(count int, pong_pid chan interface{}) func(chan interface{}, *sync.WaitGroup) int {
-	return func(pid chan interface{}, wg *sync.WaitGroup) int {
-		time.Sleep(1000 * time.Millisecond)
-		ergo.Send(pong_pid, Message{pid, "ping"})
-		ergo.Receive(pid, func(alive bool, message interface{}) int {
-			if alive {
-				switch _, token := message.(Message).from, message.(Message).token; token {
-				case "pong":
-					fmt.Println("Ping received pong")
-					return ping(count-1, pong_pid)(pid, wg)
-				}
-			}
-			return 0
-		})
-		return 0
-	}
+  return func(pid chan interface{}, wg *sync.WaitGroup) int {
+    time.Sleep(1000 * time.Millisecond)
+    ergo.Send(pong_pid, Message{pid, "ping"})
+    ergo.Receive(pid, func(alive bool, message interface{}) int {
+      if alive {
+        switch _, token := message.(Message).from, message.(Message).token; token {
+        case "pong":
+          fmt.Println("Ping received pong")
+          return ping(count-1, pong_pid)(pid, wg)
+        }
+      }
+      return 0
+    })
+    return 0
+  }
 }
 
 func pong(pid chan interface{}, wg *sync.WaitGroup) int {
-	ergo.Receive(pid, func(alive bool, message interface{}) int {
-		if alive {
-			switch from, token := message.(Message).from, message.(Message).token; token {
-			case "finished":
-				fmt.Println("Pong finished")
-				return 0
-			case "ping":
-				fmt.Println("Pong received ping")
-				ergo.Send(from, Message{pid, "pong"})
-				return pong(pid, wg)
-			}
-		}
-		return 0
-	})
-	return 0
+  ergo.Receive(pid, func(alive bool, message interface{}) int {
+    if alive {
+      switch from, token := message.(Message).from, message.(Message).token; token {
+      case "finished":
+        fmt.Println("Pong finished")
+        return 0
+      case "ping":
+        fmt.Println("Pong received ping")
+        ergo.Send(from, Message{pid, "pong"})
+        return pong(pid, wg)
+      }
+    }
+    return 0
+  })
+  return 0
 }
 
 type Message struct {
-	from  chan interface{}
-	token string
+  from  chan interface{}
+  token string
 }
 
 func main () {
   p1, wg1 := ergo.Spawn(pong)
-	p2, wg2 := ergo.SpawnLink(p1, ping(3, p1))
-	fmt.Println(p1, wg1, p2, wg2)
-	fmt.Println(ergo.ListProcesses())
-	wg1.Wait()
-	wg2.Wait()
-	fmt.Println(ergo.ListProcesses())
+  p2, wg2 := ergo.SpawnLink(p1, ping(3, p1))
+  fmt.Println(p1, wg1, p2, wg2)
+  fmt.Println(ergo.ListProcesses())
+  wg1.Wait()
+  wg2.Wait()
+  fmt.Println(ergo.ListProcesses())
 }
 ```
 
