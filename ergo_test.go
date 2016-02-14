@@ -86,6 +86,33 @@ func TestCounter(t *testing.T) {
 	pid <- 20
 }
 
+func drone(pid chan interface{}, wg *sync.WaitGroup) int {
+	Receive(pid, func(alive bool, message interface{}) int {
+		if alive {
+			time.Sleep(5000 * time.Millisecond)
+			fmt.Println("Process is alive")
+			return drone(pid, wg)
+		} else {
+			fmt.Println("Process is dead")
+			return 0
+		}
+		return 0
+	})
+	return 0
+}
+
+func TestKill(t *testing.T) {
+	pid1, wg1 := Spawn(drone)
+	pid2, wg2 := SpawnLink(pid1, drone)
+	fmt.Println(pid1, wg1, pid2, wg2)
+	fmt.Println(ListProcesses())
+	Send(pid1, "Hello")
+	Kill(pid1)
+	fmt.Println(ListProcesses())
+	wg1.Wait()
+	wg2.Wait()
+}
+
 // because we can't overload with pattern matching, we can break the function into separate pieces
 func ping(count int, pong_pid chan interface{}) func(chan interface{}, *sync.WaitGroup) int {
 	if count > 0 {

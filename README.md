@@ -53,8 +53,8 @@ func main () {
   pid1, wg1 := ergo.Spawn(worker)
   pid2, wg2 := ergo.SpawnLink(pid1, worker)
   fmt.Println(ergo.ListProcesses())
-  ergo.Kill(pid1)
-  fmt.Println(ergo.ListProcesses())
+  wg1.Wait()
+  wg2.Wait()
 }
 ```
 
@@ -93,16 +93,29 @@ ergo.Send(pid, "hello")
 ## Kill
 The `Kill` function is a wrapper around closing a `pid` channel, that also takes care of killing linked processes. In Go, goroutines cannot be killed from the outside, so the best we can do is organize logic such that the goroutines terminate, ie `return`. If you have a blocking infinite loop inside a process, then `Kill` will not help you.
 ```go
-func worker(pid chan interface{}, wg *sync.WaitGroup) int {
-  time.Sleep(5000 * time.Millisecond)
+func drone(pid chan interface{}, wg *sync.WaitGroup) int {
+  ergo.Receive(pid, func(alive bool, message interface{}) int {
+    if alive {
+      time.Sleep(5000 * time.Millisecond)
+      fmt.Println("Process is alive")
+      return drone(pid, wg)
+    } else {
+      fmt.Println("Process is dead")
+      return 0
+    }
+    return 0
+  })
   return 0
 }
 func main () {
-  pid1, wg1 := ergo.Spawn(worker)
-  pid2, wg2 := ergo.SpawnLink(pid1, worker)
+  pid1, wg1 := ergo.Spawn(drone)
+  pid2, wg2 := ergo.SpawnLink(pid1, drone)
   fmt.Println(ergo.ListProcesses())
+  ergo.Send(pid1, 1)
   ergo.Kill(pid1)
   fmt.Println(ergo.ListProcesses())
+  wg1.Wait()
+  wg2.Wait()
 }
 ```
 
