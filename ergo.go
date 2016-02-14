@@ -6,10 +6,12 @@ import (
 )
 
 var pids = make(map[chan interface{}]([](chan interface{})))
+var mutex = &sync.Mutex{}
 
 // Spawn
-// make Spawn atomic later using locks
 func Spawn(f interface{}) (chan interface{}, *sync.WaitGroup) {
+	mutex.Lock()
+	defer mutex.Unlock()
 	pid := make(chan interface{})
 	wg := sync.WaitGroup{}
 	wg.Add(1)
@@ -28,12 +30,14 @@ func Spawn(f interface{}) (chan interface{}, *sync.WaitGroup) {
 }
 
 // SpawnLink
-// make SpawnLink atomic later using locks later
 func SpawnLink(partner chan interface{}, f interface{}) (chan interface{}, *sync.WaitGroup) {
 	// register the new channel under a list for the parent channel
+	mutex.Lock()
 	v, ok := pids[partner]
 	if ok {
+		mutex.Unlock()
 		pid, wg := Spawn(f)
+		mutex.Lock()
 		pids[partner] = append(v, pid)
 		w, k := pids[pid]
 		if k {
@@ -41,15 +45,17 @@ func SpawnLink(partner chan interface{}, f interface{}) (chan interface{}, *sync
 		} else {
 			panic("Process pid does not exist")
 		}
+		mutex.Unlock()
 		return pid, wg
 	} else {
+		mutex.Unlock()
 		panic("Partner pid does not exist")
 	}
 }
 
 // Send
-// make Send atomic using locks later
 func Send(pid chan interface{}, message interface{}) {
+	// we could use a lock here, but that might not be a good idea
 	_, ok := pids[pid]
 	if ok {
 		pid <- message
@@ -59,7 +65,6 @@ func Send(pid chan interface{}, message interface{}) {
 }
 
 // Receive
-// make Receive atomic using locks later
 func Receive(pid chan interface{}, f func(bool, interface{}) int) bool {
 	select {
 	case message, ok := (<-pid):
@@ -76,17 +81,19 @@ func Receive(pid chan interface{}, f func(bool, interface{}) int) bool {
 }
 
 // Kill
-// make Kill atomic using locks later
 func Kill(pid chan interface{}) bool {
+	mutex.Lock()
 	children, ok := pids[pid]
 	if ok {
 		close(pid)
 		delete(pids, pid)
+		mutex.Unlock()
 		for _, child := range children {
 			Kill(child)
 		}
 		return true
 	} else {
+		mutex.Unlock()
 		return false
 	}
 }

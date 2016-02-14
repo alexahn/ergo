@@ -191,7 +191,6 @@ func main () {
 ```
 
 ## Todo
-- Make all the functions atomic
 - Use `defer` to catch process panics, and propagate errors
 - Add monitor function
 - Add register (get and set) functions
