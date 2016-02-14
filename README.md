@@ -2,7 +2,7 @@
 A simple attempt at simulating Erlang processes in Go. Mostly an exercise to get familiar with Go, but might prove to be useful for building large distributed applications.
 
 ## Spawn
-The `Spawn` function accepts as input a function (`f`) that accepts as input (`pid`) `chan interface{}` and (`wg`)  `*sync.WaitGroup`.
+The `Spawn` function accepts as input a function (`f`) that accepts as input (`pid`) `chan interface{}` and (`wg`)  `*sync.WaitGroup`. The `Spawn` function returns a `pid` of type `chan interface{}` and `wg` of type `*sync.WaitGroup`.
 
 Messages are received via `pid`, which can be used directly, but it is recommended to use the `Send` and `Receive` functions to better manage process state.
 ```go
@@ -176,3 +176,9 @@ func main () {
 	fmt.Println(ergo.ListProcesses())
 }
 ```
+
+## Todo
+- Make all the functions atomic
+- Use `defer` to catch process panics, and propagate errors
+- Add monitor function
+- Add register (get and set) functions
