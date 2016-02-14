@@ -7,6 +7,85 @@ import (
 	"time"
 )
 
+func TestSpawnPid(t *testing.T) {
+	pid, wg := Spawn(func(pid chan interface{}, wg *sync.WaitGroup) int {
+		fmt.Println(<-pid)
+		return 0
+	})
+	pid <- "hello"
+	fmt.Println(pid, wg)
+}
+
+func TestSpawnWg(t *testing.T) {
+	pid, wg := Spawn(func(pid chan interface{}, wg *sync.WaitGroup) int {
+		wg.Add(1)
+		go func() {
+			time.Sleep(1000 * time.Millisecond)
+			wg.Done()
+		}()
+		return 0
+	})
+	wg.Wait()
+	fmt.Println(pid, wg)
+}
+
+func worker(pid chan interface{}, wg *sync.WaitGroup) int {
+	time.Sleep(5000 * time.Millisecond)
+	return 0
+}
+
+func TestSpawnLink(t *testing.T) {
+	pid1, wg1 := Spawn(worker)
+	pid2, wg2 := SpawnLink(pid1, worker)
+	fmt.Println(pid1, wg1, pid2, wg2)
+	fmt.Println(ListProcesses())
+	Kill(pid1)
+	fmt.Println(ListProcesses())
+}
+
+func TestReceive(t *testing.T) {
+	pid, wg := Spawn(func(pid chan interface{}, wg *sync.WaitGroup) int {
+		Receive(pid, func(alive bool, message interface{}) int {
+			if alive {
+				fmt.Println(message)
+			}
+			return 0
+		})
+		return 0
+	})
+	fmt.Println(pid, wg)
+	pid <- "hello"
+}
+
+func TestSend(t *testing.T) {
+	pid, wg := Spawn(func(pid chan interface{}, wg *sync.WaitGroup) int {
+		Receive(pid, func(alive bool, message interface{}) int {
+			if alive {
+				fmt.Println(message)
+			}
+			return 0
+		})
+		return 0
+	})
+	fmt.Println(pid, wg)
+	Send(pid, "hello")
+}
+
+func counter(n int) func(chan interface{}, *sync.WaitGroup) int {
+	return func(pid chan interface{}, wg *sync.WaitGroup) int {
+		fmt.Println("counter value", n)
+		x := <-pid
+		return counter(n+x.(int))(pid, wg)
+	}
+}
+
+func TestCounter(t *testing.T) {
+	pid, wg := Spawn(counter(0))
+	fmt.Println(pid, wg)
+	pid <- 10
+	pid <- 20
+}
+
 // because we can't overload with pattern matching, we can break the function into separate pieces
 func ping(count int, pong_pid chan interface{}) func(chan interface{}, *sync.WaitGroup) int {
 	if count > 0 {
